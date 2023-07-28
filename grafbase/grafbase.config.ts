@@ -12,17 +12,7 @@ import { g, auth, config } from '@grafbase/sdk'
 // Define Data Models
 // https://grafbase.com/docs/database
 
-// const post = g.model('Post', {
-//   title: g.string(),
-//   slug: g.string().unique(),
-//   content: g.string().optional(),
-//   publishedAt: g.datetime().optional(),
-//   comments: g.relation(() => comment).optional().list().optional(),
-//   likes: g.int().default(0),
-//   tags: g.string().optional().list().length({ max: 5 }),
-//   author: g.relation(() => user).optional()
-// }).search()
-
+// @ts-ignore
 const User = g.model('User', {
   name: g.string(),
   email: g.email().optional(),
@@ -35,8 +25,11 @@ const User = g.model('User', {
   // Extend models with resolvers
   // https://grafbase.com/docs/edge-gateway/resolvers
   // gravatar: g.url().resolver('user/gravatar')
+}).auth((rules) => {
+  rules.public().read()
 })
 
+// @ts-ignore
 const Project = g.model('Project', {
   title: g.string().length({min: 3}),
   description: g.string(),
@@ -45,16 +38,24 @@ const Project = g.model('Project', {
   githubUrl: g.url(),
   category: g.string().search(),
   createdBy: g.relation(() => User)
+}).auth((rules) => {
+  rules.public().read(),
+  rules.private().create().update().delete()
+})
+
+const jwt = auth.JWT({
+  issuer: 'grafbase',
+  secret: g.env('NEXTAUTH_SECRET')
 })
 
 export default config({
-  schema: g
+  schema: g,
   // Integrate Auth
   // https://grafbase.com/docs/auth
-  // auth: {
-  //   providers: [authProvider],
-  //   rules: (rules) => {
-  //     rules.private()
-  //   }
-  // }
+  auth: {
+    providers: [jwt],
+    rules: (rules) => {
+      rules.private()
+    }
+  }
 })
